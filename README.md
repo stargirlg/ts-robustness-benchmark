@@ -84,3 +84,6 @@ ts-robustness-benchmark/
     ├── main.tex
     ├── table_cross_dataset.tex
     └── fig_cross_dataset_crossover.pdf
+
+
+5. Reproducibility & EnvironmentBackbone: google/timesfm-2.5-200m-pytorch (zero-shot inference, context length $L=512$, forecast horizon $H=96$)Datasets: ETTh1 (hourly, $N=30$ test windows) and ETTm1 (15-minute, $N=120$ test windows), target variable OTCorruption Model: Additive i.i.d. Student-$t$ noise ($\nu=2$) scaled by $\alpha \cdot \sigma_{\text{train}}$ across 10 paired random seedsStatistical Testing: Seed-level paired two-sided $t$-tests and Wilcoxon signed-rank tests with Holm–Bonferroni and Benjamini–Hochberg FDR multiple-testing corrections across $\alpha \in \{0.50, 0.75, 1.00, 1.25, 1.50, 1.75, 2.00\}$
