@@ -1,6 +1,6 @@
 # Conditional Robustness of Zero-Shot Time-Series Foundation Models: Regime-Dependent Preprocessing Under Heavy-Tailed Noise
 
-> **Status:** Research-in-Progress — Experimental sweeps and statistical verification on `ETTh1` and `ETTm1` are complete; manuscript compilation and controlled downsampling ablations are ongoing.
+> **Status:** Experimental sweeps and statistical verification on `ETTh1` and `ETTm1` are complete; manuscript compilation and controlled downsampling ablations are ongoing.
 
 An empirical investigation into when causal input preprocessing improves versus degrades zero-shot forecasting in `TimesFM-2.5-200M` (`google/timesfm-2.5-200m-pytorch`) under heavy-tailed sensor corruption.
 
@@ -60,6 +60,8 @@ $$\Delta\text{MAE}(\%) = \frac{\text{MAE}_{\text{clipped}} - \text{MAE}_{\text{r
 | **1.50** | $2.278 \pm 0.145$ | $2.247 \pm 0.147$ | $-1.36\%$ | 0.6338 | $2.019 \pm 0.100$ | $1.831 \pm 0.115$ | **$-9.31\%$** | **0.0006** |
 | **1.75** | $2.436 \pm 0.161$ | $2.295 \pm 0.160$ | $-5.80\%$ | 0.2166 | $2.194 \pm 0.111$ | $1.916 \pm 0.121$ | **$-12.66\%$** | **0.0001** |
 | **2.00** | $2.604 \pm 0.177$ | $2.356 \pm 0.177$ | **$-9.53\%$** | **0.0429** | $2.379 \pm 0.122$ | $2.009 \pm 0.129$ | **$-15.55\%$** | **<0.0001** |
+
+> *Note:* Secondary error metrics (`RMSE` and `sMAPE`) exhibit the same monotonic regime transition across both datasets; on `ETTm1`, `sMAPE` improves across all evaluated noise levels ($\Delta\text{sMAPE} = -2.71\%$ at $\alpha=0.50$ to $-12.71\%$ at $\alpha=2.00$).
 
 ### 3.3 Interpolated Crossover Thresholds
 The estimated break-even thresholds, obtained through linear interpolation, are:
