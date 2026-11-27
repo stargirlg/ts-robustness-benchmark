@@ -70,7 +70,9 @@ The estimated break-even thresholds, obtained through linear interpolation, are:
 
 These are interpolated estimates, not directly tested noise levels.
 
-regime_crossover.pdf
+
+<img width="1554" height="612" alt="regime_crossover" src="https://github.com/user-attachments/assets/692e6078-075a-433a-980a-ad10b6310c46" />
+
 ---
 
 ## 4. Repository Structure
