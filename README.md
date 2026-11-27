@@ -1,90 +1,47 @@
-# Conditional Robustness of Zero-Shot Time-Series Foundation Models: Regime-Dependent Preprocessing Under Heavy-Tailed Noise
+# Causal Robust Filtering for Zero-Shot Time-Series Foundation Models under Heavy-Tailed Noise
 
-> **Status:** Experimental sweeps and statistical verification on `ETTh1` and `ETTm1` are complete; manuscript compilation and controlled downsampling ablations are ongoing.
+[![Model](https://img.shields.io/badge/Model-TimesFM--2.5--200M-blue)](https://huggingface.co/google/timesfm-2.5-200m-pytorch)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-An empirical investigation into when causal input preprocessing improves versus degrades zero-shot forecasting in `TimesFM-2.5-200M` (`google/timesfm-2.5-200m-pytorch`) under heavy-tailed sensor corruption.
-
----
-
-## 1. Research Question
-
-Pretrained time-series foundation models apply per-context input normalization before transformer encoding. Extreme outliers can distort context-scale statistics, potentially affecting forecasting accuracy under impulsive, heavy-tailed noise.
-
-Rather than assuming that denoising is universally beneficial, this project investigates:
-
-> **When does causal input preprocessing improve versus degrade zero-shot forecasting accuracy under heavy-tailed noise, and how does the break-even threshold vary across datasets with different temporal resolutions?**
+Empirical benchmark evaluating the inference stability of **`google/timesfm-2.5-200m-pytorch`** under heavy-tailed Student-$t$ ($\nu = 2$) observational noise, and characterizing the **regime crossover** of a strictly causal, current-inclusive rolling **Median–IQR clipping filter** ($W = 24, k = 1.5$) across temporal resolutions and evaluation settings.
 
 ---
 
-## 2. Central Empirical Findings
+## Key Findings
 
-### 2.1 Regime-Dependent Preprocessing Crossover
-Causal Rolling Median-IQR clipping ($W=24, k=1.5$) is **conditionally beneficial rather than universally robust**. The same filter significantly *degrades* zero-shot forecasting under moderate heavy-tailed noise ($\alpha \le 1.00$ on `ETTh1`), potentially because clipping removes genuine signal extrema. It reaches statistical parity in an intermediate transition zone and produces statistically significant error reductions under severe corruption ($\alpha = 2.00$ on `ETTh1` and $\alpha \ge 1.25$ on `ETTm1`).
+![Regime Crossover](regime_crossover.png)
 
-### 2.2 Preliminary Spectral and Polynomial Filter Screening
-In preliminary screening experiments conducted exclusively on `ETTh1` (`OT`, $\alpha \in [0.1, 1.0]$), frequency-domain FFT low-pass filtering and polynomial Savitzky–Golay smoothing consistently degraded zero-shot accuracy compared with unfiltered inputs. These spectral baselines were evaluated only on `ETTh1` and were not replicated across `ETTm1`. Therefore, subsequent cross-dataset experiments focused on causal time-domain Median-IQR clipping.
-
-### 2.3 Sampling-Resolution-Associated Crossover Shift
-The estimated zero-benefit threshold differs between the two evaluated datasets:
-- **`ETTh1` (hourly):** $\alpha^* \approx 1.43$
-- **`ETTm1` (15-minute):** $\alpha^* \approx 0.93$
-
-This suggests that the effectiveness of local robust clipping may depend on temporal resolution and local autocorrelation characteristics. However, these results do not establish that sampling frequency causes the difference. Controlled experiments, such as downsampling `ETTm1` to hourly intervals on the same underlying physical series, are required to isolate the contribution of sampling frequency from dataset-specific variance.
+* **Sharp Regime Crossover:**
+  * **Low-Noise Regime ($\alpha < \hat{\alpha}^*$):** Unconditional Median–IQR clipping degrades zero-shot accuracy ($\Delta\text{MAE} > 0\%$, $p_{\text{Holm}} < 0.05$ for $\alpha \in [0.25, 0.75]$ on `ETTh1` and $\alpha \in [0.25, 0.50]$ on `ETTm1`) by truncating legitimate signal peaks.
+  * **High-Noise Regime ($\alpha > \hat{\alpha}^*$):** Once heavy-tailed corruption exceeds the estimated break-even regime, causal pre-filtering yields statistically significant reductions in Mean Absolute Error ($p_{\text{Holm}} \le 0.0034$ for $\alpha \ge 1.25$; $p_{\text{Holm}} < 0.0001$ for $\alpha \ge 1.50$).
+* **Benchmark & Resolution Differences:**
+  * **ETTh1 (Hourly, $L=448, H=96$, $4$-day horizon, $N=117$):** Estimated linear crossover at $\hat{\alpha}^* \approx \mathbf{1.0417}$, achieving **$-16.98\%$** MAE reduction at $\alpha = 2.00$ ($t = +12.25, p_{\text{Holm}} < 0.0001$).
+  * **ETTm1 (15-Minute, $L=448, H=96$, $24$-hour horizon, $N=120$):** Earlier estimated linear crossover at $\hat{\alpha}^* \approx \mathbf{0.8147}$, achieving **$-21.55\%$** MAE reduction at $\alpha = 2.00$ ($t = +13.16, p_{\text{Holm}} < 0.0001$).
 
 ---
 
-## 3. Statistical Evidence
+## Summary Results ($n = 10$ Seeds, $L = 448, H = 96$)
 
-### 3.1 Experimental Unit and Metric Definition
-To avoid pseudo-replication across evaluation windows, forecast errors are first averaged across all $N=30$ (`ETTh1`) or $N=120$ (`ETTm1`) test windows within each random seed. All hypothesis tests operate strictly on the **$n=10$ paired seed-level observations** ($\text{df}=9$) per noise level $\alpha$.
-
-Relative error change is defined as:
-
-$$\Delta\text{MAE}(\%) = \frac{\text{MAE}_{\text{clipped}} - \text{MAE}_{\text{raw}}}{\text{MAE}_{\text{raw}}} \times 100$$
-
-**Interpretation:**
-- **Positive ($\Delta\text{MAE} > 0$):** Clipping degrades forecasting accuracy relative to unfiltered noisy input.
-- **Negative ($\Delta\text{MAE} < 0$):** Clipping improves forecasting accuracy.
-- **Zero ($\Delta\text{MAE} = 0$):** Break-even parity, used to estimate the crossover threshold $\alpha^*$ through piecewise linear interpolation between adjacent evaluated grid points.
-
-### 3.2 Cross-Dataset Heavy-Tailed Sweep ($\nu=2$)
-
-**Table 1.** Cross-resolution zero-shot MAE ($\text{Mean} \pm \text{SD}$ across 10 paired seeds, $H=96$) under Student-$t$ ($\nu=2$) corruption. The $p_{\text{Holm}}$ values report Holm–Bonferroni-adjusted two-sided paired $t$-test $p$-values across the 7 noise levels.
-
-| $\alpha$ | `ETTh1` Unfiltered ($N=30$) | `ETTh1` Median-IQR ($N=30$) | `ETTh1` $\Delta\text{MAE}$ | `ETTh1` $p_{\text{Holm}}$ | `ETTm1` Unfiltered ($N=120$) | `ETTm1` Median-IQR ($N=120$) | `ETTm1` $\Delta\text{MAE}$ | `ETTm1` $p_{\text{Holm}}$ |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **0.50** | $1.818 \pm 0.081$ | $1.936 \pm 0.103$ | $+6.45\%$ | **0.0155** | $1.465 \pm 0.047$ | $1.522 \pm 0.068$ | $+3.90\%$ | 0.0604 |
-| **0.75** | $1.899 \pm 0.099$ | $2.053 \pm 0.104$ | $+8.09\%$ | **0.0017** | $1.578 \pm 0.061$ | $1.621 \pm 0.084$ | $+2.77\%$ | 0.1599 |
-| **1.00** | $2.005 \pm 0.114$ | $2.154 \pm 0.111$ | $+7.42\%$ | **0.0344** | $1.708 \pm 0.075$ | $1.689 \pm 0.099$ | $-1.12\%$ | 0.4640 |
-| **1.25** | $2.133 \pm 0.130$ | $2.206 \pm 0.135$ | $+3.45\%$ | 0.4423 | $1.856 \pm 0.087$ | $1.756 \pm 0.107$ | **$-5.39\%$** | **0.0211** |
-| **1.50** | $2.278 \pm 0.145$ | $2.247 \pm 0.147$ | $-1.36\%$ | 0.6338 | $2.019 \pm 0.100$ | $1.831 \pm 0.115$ | **$-9.31\%$** | **0.0006** |
-| **1.75** | $2.436 \pm 0.161$ | $2.295 \pm 0.160$ | $-5.80\%$ | 0.2166 | $2.194 \pm 0.111$ | $1.916 \pm 0.121$ | **$-12.66\%$** | **0.0001** |
-| **2.00** | $2.604 \pm 0.177$ | $2.356 \pm 0.177$ | **$-9.53\%$** | **0.0429** | $2.379 \pm 0.122$ | $2.009 \pm 0.129$ | **$-15.55\%$** | **<0.0001** |
-
-> *Note:* Secondary error metrics (`RMSE` and `sMAPE`) exhibit the same monotonic regime transition across both datasets; on `ETTm1`, `sMAPE` improves across all evaluated noise levels ($\Delta\text{sMAPE} = -2.71\%$ at $\alpha=0.50$ to $-12.71\%$ at $\alpha=2.00$).
-
-### 3.3 Interpolated Crossover Thresholds
-The estimated break-even thresholds, obtained through linear interpolation, are:
-- **`ETTh1`:** $\alpha^* = 1.4294$, interpolated between $\alpha = 1.25$ and $\alpha = 1.50$.
-- **`ETTm1`:** $\alpha^* = 0.9283$, interpolated between $\alpha = 0.75$ and $\alpha = 1.00$.
-
-These are interpolated estimates, not directly tested noise levels.
-
-
-<img width="1554" height="612" alt="regime_crossover" src="https://github.com/user-attachments/assets/692e6078-075a-433a-980a-ad10b6310c46" />
+| Noise Scale ($\alpha$) | ETTh1 Raw MAE | ETTh1 Filtered MAE | ETTh1 $\Delta\text{MAE}$ | ETTm1 Raw MAE | ETTm1 Filtered MAE | ETTm1 $\Delta\text{MAE}$ |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **0.00** | $0.1766 \pm 0.0000$ | $0.1766 \pm 0.0000$ | $+0.02\%$ | $0.1279 \pm 0.0000$ | $0.1299 \pm 0.0000$ | $+1.54\%$ |
+| **0.25** | $0.1941 \pm 0.0024$ | $0.1976 \pm 0.0030$ | $+1.83\%$ | $0.1483 \pm 0.0026$ | $0.1515 \pm 0.0040$ | $+2.14\%$ |
+| **0.50** | $0.2014 \pm 0.0037$ | $0.2116 \pm 0.0038$ | $+5.05\%$ | $0.1639 \pm 0.0036$ | $0.1699 \pm 0.0070$ | $+3.64\%$ |
+| **0.75** | $0.2133 \pm 0.0057$ | $0.2228 \pm 0.0052$ | $+4.44\%$ | $0.1803 \pm 0.0050$ | $0.1827 \pm 0.0082$ | $+1.35\%$ |
+| **1.00** | $0.2284 \pm 0.0077$ | $0.2303 \pm 0.0055$ | $+0.84\%$ | $0.1986 \pm 0.0061$ | $0.1909 \pm 0.0090$ | **$-3.86\%$** |
+| **1.25** | $0.2458 \pm 0.0097$ | $0.2355 \pm 0.0059$ | **$-4.20\%$** | $0.2187 \pm 0.0071$ | $0.1979 \pm 0.0095$ | **$-9.48\%$** |
+| **1.50** | $0.2653 \pm 0.0115$ | $0.2411 \pm 0.0082$ | **$-9.13\%$** | $0.2404 \pm 0.0080$ | $0.2061 \pm 0.0102$ | **$-14.28\%$** |
+| **1.75** | $0.2863 \pm 0.0132$ | $0.2481 \pm 0.0104$ | **$-13.36\%$** | $0.2636 \pm 0.0088$ | $0.2154 \pm 0.0113$ | **$-18.28\%$** |
+| **2.00** | $0.3087 \pm 0.0147$ | $0.2563 \pm 0.0121$ | **$-16.98\%$** | $0.2879 \pm 0.0095$ | $0.2259 \pm 0.0124$ | **$-21.55\%$** |
 
 ---
 
-## 4. Repository Structure
+## Repository Structure
 
 ```text
-ts-robustness-benchmark/
-├── LICENSE
-├── README.md
-├── experiment_metadata.json
-├── notebooks/
-│   └── timesfm_robustness_experiments.ipynb
-└── paper/
-    ├── main.tex
-    ├── table_cross_dataset.tex
-    └── fig_cross_dataset_crossover.pdf
+├── notebooks/                  # Evaluation notebooks & statistical audit scripts
+├── paper/                      # LaTeX manuscript source and compiled PDF
+├── regime_crossover.pdf        # Publication vector figure (Figure 1)
+├── regime_crossover.png        # High-resolution plot preview
+├── experiment_metadata.json    # Deterministic hyperparameters, dataset splits & seed schedule
+└── README.md
