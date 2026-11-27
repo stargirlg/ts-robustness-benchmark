@@ -9,7 +9,7 @@ Empirical benchmark evaluating the inference stability of **`google/timesfm-2.5-
 
 ## Key Findings
 
-![Regime Crossover] regime_crossover.png
+regime_crossover.png
 
 * **Sharp Regime Crossover:**
   * **Low-Noise Regime ($\alpha < \hat{\alpha}^*$):** Unconditional Median–IQR clipping degrades zero-shot accuracy ($\Delta\text{MAE} > 0\%$, $p_{\text{Holm}} < 0.05$ for $\alpha \in [0.25, 0.75]$ on `ETTh1` and $\alpha \in [0.25, 0.50]$ on `ETTm1`) by truncating legitimate signal peaks.
