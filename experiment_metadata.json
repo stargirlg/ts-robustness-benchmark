@@ -1,0 +1,58 @@
+{
+  "model_id": "google/timesfm-2.5-200m-pytorch",
+  "context_length": 448,
+  "horizon_length": 96,
+  "datasets": {
+    "ETTh1": {
+      "sampling": "1h",
+      "stride": 24,
+      "n_windows": 117,
+      "test_slice": [
+        11520,
+        14400
+      ]
+    },
+    "ETTm1": {
+      "sampling": "15min",
+      "stride": 96,
+      "n_windows": 120,
+      "test_slice": [
+        46080,
+        57600
+      ]
+    }
+  },
+  "filter": {
+    "type": "causal_rolling_median_iqr",
+    "W": 24,
+    "k": 1.5
+  },
+  "noise": {
+    "distribution": "student_t",
+    "df": 2,
+    "alphas": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.25,
+      1.5,
+      1.75,
+      2.0
+    ]
+  },
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "hardware": "NVIDIA GPU (Colab CUDA runtime)"
+}
